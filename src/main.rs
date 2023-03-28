@@ -1,6 +1,5 @@
-use std::io::{self, Error, ErrorKind};
-
 use anyhow::Result;
+use std::io::{self, Error, ErrorKind};
 fn main() -> Result<()> {
     println!("welcome to rusty-rpn!");
     let mut buf = String::new();
@@ -35,9 +34,8 @@ pub enum Node {
     Mul,
     Div,
 }
-
 pub fn tokenise(input: String) -> Result<Vec<Node>> {
-    let tokend = input
+    input
         .trim()
         .split(" ")
         .map(|c| match c {
@@ -47,55 +45,35 @@ pub fn tokenise(input: String) -> Result<Vec<Node>> {
             "/" => Ok(Node::Div),
             i => match i.parse() {
                 Ok(i) => Ok(Node::Val(i)),
-                Err(err) => Err(err),
+                Err(err) => Err(anyhow::anyhow!("parse number failed, err={:?}", err)),
             },
         })
-        .flatten()
-        .collect();
-    Ok(tokend)
+        .collect::<Result<_>>()
 }
 pub fn execute(nodes: Vec<Node>) -> Result<i32> {
     let unmatch_err = Err("input error");
     let mut stack: Vec<Node> = vec![];
-    let hoge = nodes.iter().try_for_each(|node| match node {
-        Node::Plus => {
-            let a = stack.pop();
-            let b = stack.pop();
-            match (a, b) {
-                (Some(Node::Val(i)), Some(Node::Val(j))) => Ok(stack.push(Node::Val(j + i))),
-                (_, _) => unmatch_err,
-            }
-        }
-        Node::Minus => {
-            let a = stack.pop();
-            let b = stack.pop();
-            match (a, b) {
-                (Some(Node::Val(i)), Some(Node::Val(j))) => Ok(stack.push(Node::Val(j - i))),
-                (_, _) => unmatch_err,
-            }
-        }
-        Node::Mul => {
-            let a = stack.pop();
-            let b = stack.pop();
-            match (a, b) {
-                (Some(Node::Val(i)), Some(Node::Val(j))) => Ok(stack.push(Node::Val(j * i))),
-                (_, _) => unmatch_err,
-            }
-        }
-        Node::Div => {
-            let a = stack.pop();
-            let b = stack.pop();
-            match (a, b) {
-                (Some(Node::Val(i)), Some(Node::Val(j))) if i != 0 => {
-                    Ok(stack.push(Node::Val(j / i)))
-                }
-                (Some(Node::Val(_)), Some(Node::Val(j))) if j == 0 => Err("divide by zero"),
-                (_, _) => unmatch_err,
-            }
-        }
+    let result = nodes.iter().try_for_each(|node| match node {
+        Node::Plus => match (stack.pop(), stack.pop()) {
+            (Some(Node::Val(i)), Some(Node::Val(j))) => Ok(stack.push(Node::Val(j + i))),
+            (_, _) => unmatch_err,
+        },
+        Node::Minus => match (stack.pop(), stack.pop()) {
+            (Some(Node::Val(i)), Some(Node::Val(j))) => Ok(stack.push(Node::Val(j - i))),
+            (_, _) => unmatch_err,
+        },
+        Node::Mul => match (stack.pop(), stack.pop()) {
+            (Some(Node::Val(i)), Some(Node::Val(j))) => Ok(stack.push(Node::Val(j * i))),
+            (_, _) => unmatch_err,
+        },
+        Node::Div => match (stack.pop(), stack.pop()) {
+            (Some(Node::Val(i)), Some(Node::Val(j))) if i != 0 => Ok(stack.push(Node::Val(j / i))),
+            (Some(Node::Val(_)), Some(Node::Val(j))) if j == 0 => Err("divide by zero"),
+            (_, _) => unmatch_err,
+        },
         Node::Val(i) => Ok(stack.push(Node::Val(*i))),
     });
-    match hoge {
+    match result {
         Ok(()) => {
             if stack.len() != 1 {
                 Err(anyhow::anyhow!(Error::new(
