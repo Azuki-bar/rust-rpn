@@ -98,19 +98,39 @@ mod tests {
     fn tokenize_test() {
         assert_eq!(tokenise("123".to_string()).unwrap(), vec![Node::Val(123)]);
         assert_eq!(tokenise(" 123".to_string()).unwrap(), vec![Node::Val(123)]);
+        assert_eq!(tokenise(" 123 ".to_string()).unwrap(), vec![Node::Val(123)]);
+        assert_eq!(tokenise("-123".to_string()).unwrap(), vec![Node::Val(-123)]);
+
         assert_eq!(
-            tokenise("1++".to_string()).unwrap(),
+            tokenise("1 + +".to_string()).unwrap(),
             vec![Node::Val(1), Node::Plus, Node::Plus]
         );
         assert_eq!(
-            tokenise("+-*/".to_string()).unwrap(),
+            tokenise("+ - * / ".to_string()).unwrap(),
             vec![Node::Plus, Node::Minus, Node::Mul, Node::Div]
         );
-        assert_eq!(tokenise("".to_string()).unwrap(), vec![]);
-        assert_eq!(tokenise("     ".to_string()).unwrap(), vec![]);
     }
     #[test]
     fn tokenise_err_test() {
-        // assert_eq!(tokenise("..".to_string()).unwrap_err(),)
+        assert_eq!(
+            tokenise("1.2".to_string()).unwrap_err().to_string(),
+            "parse number failed, err=ParseIntError { kind: InvalidDigit }"
+        );
+        assert_eq!(
+            tokenise("".to_string()).unwrap_err().to_string(),
+            "parse number failed, err=ParseIntError { kind: Empty }"
+        );
+        assert_eq!(
+            tokenise("      ".to_string()).unwrap_err().to_string(),
+            "parse number failed, err=ParseIntError { kind: Empty }"
+        );
+        assert_eq!(
+            tokenise("asdf".to_string()).unwrap_err().to_string(),
+            "parse number failed, err=ParseIntError { kind: InvalidDigit }"
+        );
+        assert_eq!(
+            tokenise("+-".to_string()).unwrap_err().to_string(),
+            "parse number failed, err=ParseIntError { kind: InvalidDigit }"
+        );
     }
 }
